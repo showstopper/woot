@@ -1,0 +1,11 @@
+woot is a unit testing system written in ooc.
+
+When feature-complete, it will be used as the official unit
+testing system of the ooc compiler test suite.
+
+Governing principles:
+  * File-based
+  * For each test, can specify "should compile (or not)", with which error message,
+  "should run (or not)", "should segfault", "should throw exception"
+  * Generate nice text (commandline) summaries, HTML summaries, etc. Possibility
+  to maintain a history of failed/passed tests.

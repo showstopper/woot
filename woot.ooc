@@ -1,35 +1,38 @@
-import io.File;
+import io.File
 
-func main {
+main: func {
 
-	printHierarchy(new File("."));
+	printHierarchy(File new("."))
 
 }
 
-func printHierarchy(File f) {
+printHierarchy: func (f: File) {
 	
-	printHierarchy(f, 0);
+	printHierarchy(f, 0)
 	
 }
 
-func printHierarchy(File f, Int i) {
+printHierarchy: func (f: File, i: Int) {
 
-	printf("%s\n", f.path);
-	List children = f.children;
-	for(File c: children) {
-		if(c.isDir) {
-			printHierarchy(c);
+	iter := f children() iterator()
+	printTabs(i)
+	printf("%s\n", f name())
+	while(iter hasNext()) {
+		File child = iter next()
+		if(child isDir()) {
+			printHierarchy(child, i + 1)
 		} else {
-			printf("%s\n", c.path);
+			printTabs(i + 1)
+			printf("%s\n", child name())
 		}
 	}
 
 }
 
-func printTabs(Int count) {
+printTabs: func (count: Int) {
 
-	for(Int i: 0..count) {
-		printf("\t");
+	for(i: Int in 0..count) {
+		printf("    ");
 	}
 
 }

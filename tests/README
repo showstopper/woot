@@ -1,0 +1,3 @@
+Here we have several directories where we can put all sorts of tests.
+
+woot will search for them recursively anyway.

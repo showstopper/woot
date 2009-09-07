@@ -1,0 +1,3 @@
+Here we have a test, var.ooc, and an expected output file, var.ooc.out
+If there was no var.ooc.out, then woot would just verify that the tests
+compiles correctly and runs without segfaulting.

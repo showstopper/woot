@@ -9,3 +9,6 @@ Governing principles:
   "should run (or not)", "should segfault", "should throw exception"
   * Generate nice text (commandline) summaries, HTML summaries, etc. Possibility
   to maintain a history of failed/passed tests.
+
+For explanations on how it should work, read the README files in every directory,
+and testsuite.woot

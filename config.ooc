@@ -6,6 +6,7 @@ Config: class {
     oocEnding   :static String = ".ooc"
     outEnding   := ".output"
     compiler := "ooc"
+    compilerBackend := "gcc"
     testDir := "tests/"   
     
     getTestDir: func() -> String {
@@ -14,6 +15,10 @@ Config: class {
 
     getCompiler: func() -> String {
         compiler
+    }
+
+    getCompilerBackend: func() -> String {
+        compilerBackend
     }
 
 }

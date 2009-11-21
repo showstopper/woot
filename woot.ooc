@@ -20,32 +20,27 @@ findOOCFiles: func(path: String) -> ArrayList<String> {
 stripEnding: func(fileName: String, ending: String) -> String {
     return fileName substring(0, (fileName length()) - (ending length()))
 }
-compileFile: func(fileName: String, path: String, compiler: String) -> Int {
+
+compileFile: func(fileName: String, path: String, compiler: String, cBackend: String) -> Int {
     args := ArrayList<String> new()
-    args add(compiler).add(path + File separator + fileName)
-    proc := SubProcess new(args)
-    proc execute()
-    /* workaround - need option to specify output-file! */
     exec := stripEnding(fileName, Config oocEnding)
-    args = ArrayList<String> new()
-    args add("mv").add(exec).add(path)
-    proc = SubProcess new(args)
-    proc execute()
-    
+    args add(compiler).add(path + File separator + fileName)
+    args add("-o="+path + File separator + exec)
+    args add("-" + cBackend)
+    SubProcess new(args) execute()
 }
 
 executeFile: func(fileName: String, path: String) -> Int {
     args := ArrayList<String> new()
     args add(path + File separator + stripEnding(fileName, Config oocEnding))
-    proc := SubProcess new(args)
-    proc execute()
+    SubProcess new(args) execute()
 }
 main: func() {
     config := Config new()
     path := config getTestDir()
     files := findOOCFiles(path) 
     for (item: String in files) {
-        compileFile(item, path, config getCompiler())
+        compileFile(item, path, config getCompiler(), config getCompilerBackend())
         executeFile(item, path)
     }
 }

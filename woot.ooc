@@ -1,5 +1,5 @@
 import io/[File,FileReader]
-import os/Process
+import os/[Pipe,PipeReader,Process]
 import structs/ArrayList
 import text/StringBuffer
 import config
@@ -42,11 +42,23 @@ OocFile: class {
         SubProcess new(args) execute()
     }
     
-    execute: func() -> Int {
+    execute: func() -> String {
         args := ArrayList<String> new()
         args add(this relativeBinaryPath())
-        SubProcess new(args) execute()
-    }
+        proc := SubProcess new(args) 
+        myPipe := Pipe new()
+        proc setStdout(myPipe)
+        proc execute()
+        a := PipeReader new(myPipe)
+        buf := StringBuffer new(Config readSize)
+        while (a hasNext()) { // IMPORTANT: Possible place for segfault
+            buf append(a read()) 
+        }
+        //buf append('\0')
+        return buf toString()                
+    }   
+    
+    
 
     relativeBinaryPath: func() -> String {path + File separator + stripped}
     relativePath: func() -> String {path + File separator + fileName}
@@ -65,13 +77,19 @@ findOOCFiles: func(path: String) -> ArrayList<OocFile> {
     return result
 }
 
+compareOutput: func(s1: String, s2: String) -> Bool {
+    s1 equals(s2 substring(0, s2 length()-1)) // s2 always contains another null-byte, needs a fix 
+}
+
 main: func() {
     config := Config new()
     path := config getTestDir()
     files := findOOCFiles(path) 
     for (item: OocFile in files) {
         item compile(config getCompiler(), config getCompilerBackend())
-        item execute()
+        if (compareOutput(item execute(), item getOutput())) {
+            "%s" format(item stripped + " PASSED") println()     
+        }
     }
 }
 

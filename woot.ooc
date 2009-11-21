@@ -3,45 +3,63 @@ import os/[Process,unistd]
 import structs/ArrayList
 import config
 
+OocFile: class {
 
-findOOCFiles: func(path: String) -> ArrayList<String> {
+    stripped: String
+    fileName: String
+    path: String
+
+    init: func(fName: String, fpath: String) {
+        fileName = fName
+        path = fpath
+        stripped = this stripEnding(fileName, Config oocEnding)
+    }
+
+    stripEnding: func(fileName: String, ending: String) -> String {
+        return fileName substring(0, (fileName length()) - (ending length()))
+    }
+
+    relativeBinaryPath: func() -> String {path + File separator + stripped}
+    relativePath: func() -> String {path + File separator + fileName}
+}
+
+findOOCFiles: func(path: String) -> ArrayList<OocFile> {
     currentDir := File new(path)
-    files :ArrayList<String>
+    files :ArrayList<OocFile>
     files = currentDir getChildrenNames()
-    result := ArrayList<String> new()
+    result := ArrayList<OocFile> new()
+    tmp :OocFile
     for(item: String in files) {
         if (item endsWith(Config oocEnding)) {
-            result add(item)
+            tmp = OocFile new(item, path)
+            result add(OocFile new(item, path))
         }
     }
     return result
 }
 
-stripEnding: func(fileName: String, ending: String) -> String {
-    return fileName substring(0, (fileName length()) - (ending length()))
-}
 
-compileFile: func(fileName: String, path: String, compiler: String, cBackend: String) -> Int {
+
+compileFile: func(f: OocFile, compiler: String, cBackend: String) -> Int {
     args := ArrayList<String> new()
-    exec := stripEnding(fileName, Config oocEnding)
-    args add(compiler).add(path + File separator + fileName)
-    args add("-o="+path + File separator + exec)
-    args add("-" + cBackend)
+    args add(compiler).add(f relativePath()) 
+    args add("-o=%s" format(f relativeBinaryPath()))
+    args add("-%s" format(cBackend))
     SubProcess new(args) execute()
 }
 
-executeFile: func(fileName: String, path: String) -> Int {
+executeFile: func(f: OocFile) -> Int {
     args := ArrayList<String> new()
-    args add(path + File separator + stripEnding(fileName, Config oocEnding))
+    args add(f relativeBinaryPath())
     SubProcess new(args) execute()
 }
 main: func() {
     config := Config new()
     path := config getTestDir()
     files := findOOCFiles(path) 
-    for (item: String in files) {
-        compileFile(item, path, config getCompiler(), config getCompilerBackend())
-        executeFile(item, path)
+    for (item: OocFile in files) {
+        compileFile(item, config getCompiler(), config getCompilerBackend())
+        executeFile(item)
     }
 }
 

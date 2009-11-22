@@ -25,8 +25,10 @@ OocFile: class {
         if (File new(outName) isFile()) {
             fr  := FileReader new(outName)
             buf := StringBuffer new(Config readSize)
-            while (fr hasNext()) { // IMPORTANT: Possible place for segfault 
+            i := 0
+            while (fr hasNext() && i < Config readSize) { 
                 buf append(fr read())
+                i++
             }
             return buf toString()
         } else {
@@ -51,14 +53,13 @@ OocFile: class {
         proc execute()
         a := PipeReader new(myPipe)
         buf := StringBuffer new(Config readSize)
-        while (a hasNext()) { // IMPORTANT: Possible place for segfault
-            buf append(a read()) 
+        i := 0
+        while (a hasNext() && i< Config readSize) { 
+            buf append(a read())
+            i++ 
         }
-        //buf append('\0')
         return buf toString()                
     }   
-    
-    
 
     relativeBinaryPath: func() -> String {path + File separator + stripped}
     relativePath: func() -> String {path + File separator + fileName}

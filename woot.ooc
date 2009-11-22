@@ -28,7 +28,7 @@ OocFile: class {
             i := 0
             while (fr hasNext() && i < Config readSize) { 
                 buf append(fr read())
-                i++
+                i+=1
             }
             return buf toString()
         } else {
@@ -56,7 +56,7 @@ OocFile: class {
         i := 0
         while (a hasNext() && i< Config readSize) { 
             buf append(a read())
-            i++ 
+            i+=1 
         }
         return buf toString()                
     }   

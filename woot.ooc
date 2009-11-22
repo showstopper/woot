@@ -18,7 +18,7 @@ OocFile: class {
     }
 
     stripEnding: func(fileName: String, ending: String) -> String {
-        return fileName substring(0, (fileName length()) - (ending length()))
+        fileName[0..fileName length() - ending length()]
     }
 
     getOutput: func() -> String {
@@ -58,7 +58,7 @@ OocFile: class {
             buf append(a read())
             i+=1 
         }
-        return buf toString()                
+        buf toString()                
     }   
 
     relativeBinaryPath: func() -> String {path + File separator + stripped}
@@ -79,7 +79,7 @@ findOOCFiles: func(path: String) -> ArrayList<OocFile> {
 }
 
 compareOutput: func(s1: String, s2: String) -> Bool {
-    s1 equals(s2 substring(0, s2 length()-1)) // s2 always contains another null-byte, needs a fix 
+    s1 == s2[0..s2 length()-1] // s2 always contains another null-byte, needs a fix 
 }
 
 main: func() {
@@ -89,7 +89,7 @@ main: func() {
     for (item: OocFile in files) {
         item compile(config getCompiler(), config getCompilerBackend())
         if (compareOutput(item execute(), item getOutput())) {
-            "%s" format(item stripped + " PASSED") println()     
+            "%s" format("[PASSED] " + item fileName) println()     
         }
     }
 }

@@ -1,0 +1,5 @@
+[general]
+compiler=ooc
+compilerBackend=gcc
+testDir=tests/
+

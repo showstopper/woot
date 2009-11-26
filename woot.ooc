@@ -13,8 +13,8 @@ OocFile: class {
     init: func(fName: String, fpath: String) {
         fileName = fName
         path = fpath
-        stripped = this stripEnding(fileName, Config oocEnding)
-        outName = path + File separator + stripped + Config outEnding
+        stripped = this stripEnding(fileName, ".ooc")
+        outName = path + File separator + stripped + ".out"
     }
 
     stripEnding: func(fileName: String, ending: String) -> String {
@@ -71,7 +71,7 @@ findOOCFiles: func(path: String) -> ArrayList<OocFile> {
     files = currentDir getChildrenNames()
     result := ArrayList<OocFile> new()
     for(item: String in files) {
-        if (item endsWith(Config oocEnding)) {
+        if (item endsWith(".ooc")) {
             result add(OocFile new(item, path))
         }
     }

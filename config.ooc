@@ -1,27 +1,44 @@
-// Default Values
+use oocini
+import io/File
+import structs/[HashMap,ArrayList]
+import oocini/INI
 
 Config: class {
-
-    suiteEnding := ".woot"
+    
     oocEnding   :static String = ".ooc"
     outEnding   :static String = ".out"
-    compiler := "ooc"
-    compilerBackend := "gcc"
-    testDir := "tests/"
-    readSize :static Int = 1000 // For StringBuffer   
+    readSize    :static Int = 1000 // For StringBuffer   
+    dict        :HashMap<String>
     
-    init: func(){}
+    ini        : INI = null
+    init: func() {
+        dict = HashMap<String> new()
+        dict put("compiler","ooc").put("compilerBackend","gcc").put("testDir", "tests/").put("suiteFile","suite.wt")
+        if (File new(dict get("suiteFile")) isFile()) {
+            ini = INI new(dict get("suiteFile"))
+            dict =  parseINIFile(ini, dict)
+        }
+    }      
+    parseINIFile: func (iniObj: INI, dict: HashMap<String>) -> HashMap<String> {
+        ini setCurrentSection("general")
+        for (key: String in dict keys) {
+            dict put(key, ini getEntry(key, dict get(key))) 
+        }
+        return dict
+    }
+
     getTestDir: func() -> String {
-        testDir
+       dict get("testDir") 
     }
 
     getCompiler: func() -> String {
-        compiler
+       dict get("compiler")     
     }
 
     getCompilerBackend: func() -> String {
-        compilerBackend
+        dict get("compilerBackend")
     }
 
+    
 }
 

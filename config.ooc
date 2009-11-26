@@ -1,7 +1,7 @@
 use oocini
 import io/File
 import structs/[HashMap,ArrayList]
-import oocini/INI
+import INI
 
 Config: class {
     

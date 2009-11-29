@@ -7,7 +7,8 @@ Config: class {
     
     oocEnding   :static String = ".ooc"
     outEnding   :static String = ".out"
-    readSize    :static Int = 1000 // For StringBuffer   
+    readSize    :static Int = 1000 // For StringBuffer
+    depth       :static Int = 25 // walk depth for findOOCFiles   
     dict        :HashMap<String>
     
     ini        : INI = null

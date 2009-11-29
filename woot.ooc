@@ -4,7 +4,6 @@ import structs/ArrayList
 import text/StringBuffer
 import config
 
-
 ExecuteResult: cover {
     retVal: Int
     output: String
@@ -125,13 +124,15 @@ Result: class {
             return false // default value
         }
     }
-
-    
 }
 
-findOOCFiles: func(path: String, oocList: ArrayList<OocFile>) -> ArrayList<OocFile> {
+
+findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, depth: Int) -> ArrayList<OocFile> {
+    if (!depth) {
+        return oocList
+    } 
     currentDir := File new(path)
-    files :ArrayList<OocFile>
+    files :ArrayList<String>
     files = currentDir getChildrenNames()
     
     for(item: String in files) {
@@ -139,7 +140,7 @@ findOOCFiles: func(path: String, oocList: ArrayList<OocFile>) -> ArrayList<OocFi
             oocList add(OocFile new(item, path))
         }
         if (File new(path + File separator + item) isDir()) {
-            oocList = findOOCFiles(path + File separator + item, oocList)
+            oocList = findOOCFiles(path + File separator + item, oocList, depth-1)
         }
     }
     return oocList
@@ -157,7 +158,6 @@ coloredOutput: func(s: String) {
 
 
 printResult: func (res: Result) {
-    
     coloredOutput("[FILE] ")
     (res oocFile path + File separator + res oocFile fileName) println()
    
@@ -168,7 +168,6 @@ printResult: func (res: Result) {
     }
     
     if (res hasSpecOutput()) {
-       
         coloredOutput("[SPECIFIED OUTPUT] ")
         res getSpecOutput() println()
         
@@ -183,7 +182,7 @@ printResult: func (res: Result) {
     }
 }
 
-checkFiles: func(config: Config, path: String, files: ArrayList<OocFile>) -> ArrayList<Result>{
+checkFiles: func(config: Config, path: String, files: ArrayList<OocFile>) -> ArrayList<Result> {
     results := ArrayList<Result> new()
     for (item: OocFile in files) {
         res := Result new(item)
@@ -192,13 +191,12 @@ checkFiles: func(config: Config, path: String, files: ArrayList<OocFile>) -> Arr
         results add(res)
     }        
     return results
-        
 }
 
 main: func() {
     config := Config new()
     path := config getTestDir()
-    files := findOOCFiles(path, ArrayList<OocFile> new()) 
+    files := findOOCFiles(path, ArrayList<OocFile> new(), Config depth) 
     "" println() // newline
     a := checkFiles(config, path, files)
     for (res: Result in a) {

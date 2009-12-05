@@ -22,11 +22,23 @@ OocFile: class {
     fileName: String
     path: String
     outName: String
-    init: func(fName: String, fpath: String) {
+    suiteName: String
+    shouldFail: Int
+    sets: Settings
+    config: Config
+    
+    init: func(fName: String, fpath: String, =sets, defConf: Config) {
         fileName = fName
         path = fpath
-        stripped = this stripEnding(fileName, ".ooc")
-        outName = path + File separator + stripped + ".out"
+        
+        stripped = this stripEnding(fileName, Settings oocEnding) 
+        outName = path + File separator + stripped + Settings outEnding
+        suiteName = path + File separator + stripped + Settings suiteEnding
+        if (hasSuite()) {
+            config = sets getConfigger(suiteName)
+        } else {
+            config = defConf
+        }
     }
 
     stripEnding: func(fileName: String, ending: String) -> String {
@@ -36,27 +48,32 @@ OocFile: class {
     hasOutput: func() -> Bool {
         return File new(outName) isFile()
     }
+
+    hasSuite: func() -> Bool {
+        return File new(suiteName) isFile()
+    } 
     
     getOutput: func() -> String {
-        if (hasOutput()) {
-            fr  := FileReader new(outName)
-            buf := StringBuffer new(Config readSize)
-            i := 0
-            while (fr hasNext() && i < Config readSize) { 
-                buf append(fr read())
-                i+=1
-            }
-            return buf toString()
+       if (hasOutput()) {
+           fr  := FileReader new(outName)
+           buf := StringBuffer new(Settings readSize)
+           i := 0
+           while (fr hasNext() && i < Settings readSize) { 
+               buf append(fr read())
+               i+=1
+           }
+           return buf toString()
         } else {
             return ""
         }
     }
 
-    compile: func(compiler: String, cBackend: String) -> Int {
+    compile: func() -> Int {
         args := ArrayList<String> new()
-        args add(compiler).add(this relativePath()) 
+        args add(config getCompiler()).add(this relativePath()) 
         args add("-o=%s" format(this relativeBinaryPath()))
-        args add("-%s" format(cBackend))
+        args add("-%s" format(config getCompilerBackend()))
+        ("\n" + fileName + " " + config getCompilerBackend()+ "\n") println()
         SubProcess new(args) execute()
     }
     
@@ -66,12 +83,12 @@ OocFile: class {
         args add(this relativeBinaryPath())
         proc := SubProcess new(args) 
         myPipe := Pipe new()
-        proc setStdout(myPipe)
+        proc setStdout(myPipe) // TODO: add pipe for stderr
         ret := proc execute()
         a := PipeReader new(myPipe)
-        buf := StringBuffer new(Config readSize)
+        buf := StringBuffer new(Settings readSize)
         i := 0
-        while (a hasNext() && i< Config readSize) { 
+        while (a hasNext() && i< Settings readSize) { 
             buf append(a read())
             i+=1 
         }
@@ -124,10 +141,19 @@ Result: class {
             return false // default value
         }
     }
+
+    compareOutput: func(s1: String, s2: String) -> Bool {
+        s1 == s2
+    }
+
+    checkCompilerRetVal: func() -> Bool {
+        printf("%d %d\n",  oocFile config getCompilerStat(), compilerRetVal)
+        oocFile config getCompilerStat() == compilerRetVal
+    }
 }
 
 
-findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, depth: Int) -> ArrayList<OocFile> {
+findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, sets: Settings, defConfig: Config, depth: Int) -> ArrayList<OocFile> {
     if (!depth) {
         return oocList
     } 
@@ -137,18 +163,15 @@ findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, depth: Int) -> Arr
     
     for(item: String in files) {
         if (item endsWith(".ooc")) {
-            oocList add(OocFile new(item, path))
+            oocList add(OocFile new(item, path, sets, defConfig))
         }
         if (File new(path + File separator + item) isDir()) {
-            oocList = findOOCFiles(path + File separator + item, oocList, depth-1)
+            oocList = findOOCFiles(path + File separator + item, oocList, sets, defConfig,  depth-1)
         }
     }
     return oocList
 }
 
-compareOutput: func(s1: String, s2: String) -> Bool {
-    s1 == s2[0..s2 length()-1] // s2 always contains another null-byte, needs a fix 
-}
 
 coloredOutput: func(s: String) {
     Terminal setFgColor(Color red)
@@ -160,17 +183,27 @@ coloredOutput: func(s: String) {
 printResult: func (res: Result) {
     coloredOutput("[FILE] ")
     (res oocFile path + File separator + res oocFile fileName) println()
-   
+    /*
     match res compilerRetVal {
         case 0 => coloredOutput("[COMPILED]\n")
         case 1 => coloredOutput("[OOC-ERROR]\n")
         case 2 => coloredOutput("[BACKEND-ERROR]\n")
     }
-    
+    */
+    if (res checkCompilerRetVal()) {
+        coloredOutput("[COMPILE-SUCESS] ") 
+    } else {
+        coloredOutput("[COMPILE-FAIL] ")
+    }
+    match res compilerRetVal {
+        case 0 => coloredOutput("[NO ERROR]\n")
+        case 1 => coloredOutput("[OOC ERROR]\n")
+        case 2 => coloredOutput("[BACKEND ERROR]\n")
+    }
+
     if (res hasSpecOutput()) {
         coloredOutput("[SPECIFIED OUTPUT] ")
-        res getSpecOutput() println()
-        
+        res getSpecOutput() print()
         coloredOutput("[OUTPUT] ")
         res output print()
     
@@ -182,11 +215,11 @@ printResult: func (res: Result) {
     }
 }
 
-checkFiles: func(config: Config, path: String, files: ArrayList<OocFile>) -> ArrayList<Result> {
+checkFiles: func(path: String, files: ArrayList<OocFile>) -> ArrayList<Result> {
     results := ArrayList<Result> new()
     for (item: OocFile in files) {
         res := Result new(item)
-        res compilerRetVal = (item compile(config getCompiler(), config getCompilerBackend()))
+        res compilerRetVal = item compile()
         res setProgResult(item execute())
         results add(res)
     }        
@@ -194,11 +227,12 @@ checkFiles: func(config: Config, path: String, files: ArrayList<OocFile>) -> Arr
 }
 
 main: func() {
-    config := Config new()
-    path := config getTestDir()
-    files := findOOCFiles(path, ArrayList<OocFile> new(), Config depth) 
+    sets := Settings new()
+    conf := sets getConfigger(Settings defSuite)
+    path := conf getTestDir()
+    files := findOOCFiles(path, ArrayList<OocFile> new(), sets, conf, sets depth) 
     "" println() // newline
-    a := checkFiles(config, path, files)
+    a := checkFiles(path, files)
     for (res: Result in a) {
         printResult(res)
     }

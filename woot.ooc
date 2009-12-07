@@ -1,7 +1,10 @@
+use deadlogger
+ 
 import io/[File,FileReader]
 import os/[Pipe,PipeReader,Process,Terminal]
 import structs/ArrayList
 import text/StringBuffer
+import deadlogger/[Log, Handler, Level, Formatter, Filter]
 import config
 
 ExecuteResult: cover {
@@ -27,13 +30,15 @@ OocFile: class {
     sets: Settings
     config: Config
     
-    init: func(fName: String, fpath: String, =sets, defConf: Config) {
+    init: func(fName: String, fpath: String, =sets, defConf: Config, loggy: Log) {
         fileName = fName
         path = fpath
         
-        stripped = this stripEnding(fileName, Settings oocEnding) 
-        outName = path + File separator + stripped + Settings outEnding
-        suiteName = path + File separator + stripped + Settings suiteEnding
+        stripped = this stripEnding(path, Settings oocEnding) 
+        //outName = path + File separator + stripped + Settings outEnding
+        outName = stripped + Settings outEnding
+        //suiteName = path + File separator + stripped + Settings suiteEnding
+        suiteName = stripped + Settings suiteEnding
         if (hasSuite()) {
             config = sets getConfigger(suiteName)
         } else {
@@ -70,17 +75,22 @@ OocFile: class {
 
     compile: func() -> Int {
         args := ArrayList<String> new()
-        args add(config getCompiler()).add(this relativePath()) 
-        args add("-o=%s" format(this relativeBinaryPath()))
+        fileName  println()
+        args add(config getCompiler()).add(fileName)//.add(this relativePath()) 
+        args add("-o=%s" format(stripped))
         args add("-%s" format(config getCompilerBackend()))
         ("\n" + fileName + " " + config getCompilerBackend()+ "\n") println()
-        SubProcess new(args) execute()
+        myPipe := Pipe new()
+
+        proc := SubProcess new(args) 
+        proc setStdout(myPipe).setStderr(myPipe) // make the compiler stfu!!
+        proc execute()
     }
     
     execute: func() -> ExecuteResult {
         
         args := ArrayList<String> new()
-        args add(this relativeBinaryPath())
+        args add(stripped)
         proc := SubProcess new(args) 
         myPipe := Pipe new()
         proc setStdout(myPipe) // TODO: add pipe for stderr
@@ -147,26 +157,24 @@ Result: class {
     }
 
     checkCompilerRetVal: func() -> Bool {
-        printf("%d %d\n",  oocFile config getCompilerStat(), compilerRetVal)
         oocFile config getCompilerStat() == compilerRetVal
     }
 }
 
 
-findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, sets: Settings, defConfig: Config, depth: Int) -> ArrayList<OocFile> {
+findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, sets: Settings, defConfig: Config, depth: Int, loggy: Log) -> ArrayList<OocFile> {
     if (!depth) {
         return oocList
     } 
     currentDir := File new(path)
-    files :ArrayList<String>
-    files = currentDir getChildrenNames()
-    
-    for(item: String in files) {
-        if (item endsWith(".ooc")) {
-            oocList add(OocFile new(item, path, sets, defConfig))
+    files :ArrayList<File>
+    files = currentDir getChildren()
+    for(item in files) {
+        if (item path endsWith(".ooc")) {
+            oocList add(OocFile new(item path, path, sets, defConfig, loggy))
         }
-        if (File new(path + File separator + item) isDir()) {
-            oocList = findOOCFiles(path + File separator + item, oocList, sets, defConfig,  depth-1)
+        if (item isDir()) {
+            oocList = findOOCFiles(item path, oocList, sets, defConfig, depth-1, loggy)
         }
     }
     return oocList
@@ -182,7 +190,8 @@ coloredOutput: func(s: String) {
 
 printResult: func (res: Result) {
     coloredOutput("[FILE] ")
-    (res oocFile path + File separator + res oocFile fileName) println()
+    res oocFile fileName println()
+    // + File separator + res oocFile fileName) println()
     /*
     match res compilerRetVal {
         case 0 => coloredOutput("[COMPILED]\n")
@@ -195,6 +204,7 @@ printResult: func (res: Result) {
     } else {
         coloredOutput("[COMPILE-FAIL] ")
     }
+    
     match res compilerRetVal {
         case 0 => coloredOutput("[NO ERROR]\n")
         case 1 => coloredOutput("[OOC ERROR]\n")
@@ -203,9 +213,9 @@ printResult: func (res: Result) {
 
     if (res hasSpecOutput()) {
         coloredOutput("[SPECIFIED OUTPUT] ")
-        res getSpecOutput() print()
+        res getSpecOutput() println()
         coloredOutput("[OUTPUT] ")
-        res output print()
+        res output println()
     
         if (!res getCompareResult()) {
             coloredOutput("[PASSED]\n\n")
@@ -228,11 +238,22 @@ checkFiles: func(path: String, files: ArrayList<OocFile>) -> ArrayList<Result> {
 
 main: func() {
     sets := Settings new()
-    conf := sets getConfigger(Settings defSuite)
+    conf: Config
+    file := FileHandler new("woot.log")
+    file setFormatter(NiceFormatter new("{{level}}: {{msg}}"))
+    Log root attachHandler(file)
+    logger := Log getLogger("main")
+    if (File new(Settings defSuite) isFile()) {
+        logger info("Suite-File found")
+        conf = sets getConfigger(Settings defSuite)
+    } else {
+        conf = sets getConfigger()
+    }
     path := conf getTestDir()
-    files := findOOCFiles(path, ArrayList<OocFile> new(), sets, conf, sets depth) 
+    files := findOOCFiles(path, ArrayList<OocFile> new(), sets, conf, sets depth, logger) 
     "" println() // newline
     a := checkFiles(path, files)
+    printf("%daaaa\n", a size())
     for (res: Result in a) {
         printResult(res)
     }

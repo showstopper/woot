@@ -41,12 +41,15 @@ compile-status
     init: func() {
         dict = HashMap<String> new()
         allowedCBackends = ArrayList<String> new()
-        dict put("compiler","ooc").put("compilerBackend","gcc").put("testDir", "tests/").put("compilerStat", SUCCESS toString())
+        dict put("compiler","ooc").put("compilerBackend","gcc").put("testDir", ".").put("compilerStat", SUCCESS toString())
         allowedCBackends add("tcc").add("gcc").add("icc").add("clang")
     }      
     
-    getConfigger: func(confFile: String) -> Config {
+    getConfigger: func ~withSuite(confFile: String) -> Config {
         return Config new(confFile, cloneHashMap(dict))
+    }
+    getConfigger: func() -> Config {
+        return Config new(cloneHashMap(dict))
     }
 }
 
@@ -54,13 +57,14 @@ Config: class {
 
     sets: HashMap<String>
     ini: INI
-    init: func(confFile: String, =sets) {
+    init: func ~withSuite(confFile: String, =sets) {
         if (File new(confFile) isFile()) {
             ini = INI new(confFile)
             sets = parseINIFile(ini, sets)
         }
     }
-    
+    init: func(=sets) {}
+ 
     parseINIFile: func (iniObj: INI, dict: HashMap<String>) -> HashMap<String> {
         ini setCurrentSection("general")
         for (key: String in sets keys) {

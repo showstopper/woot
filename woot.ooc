@@ -1,18 +1,20 @@
+use gifnooc
 use deadlogger
- 
+
 import io/[File,FileReader]
 import os/[Pipe,PipeReader,Process,Terminal]
 import structs/ArrayList
 import text/StringBuffer
 import deadlogger/[Log, Handler, Level, Formatter, Filter, Logger]
 import config
+import gifnooc/Entity
 
 ExecuteResult: cover {
     retVal: Int
     output: String
 
     new: static func(.retVal, .output) -> This {
-        this: This
+    this: This
         this retVal = retVal
         this output = output
         return this
@@ -28,9 +30,9 @@ OocFile: class {
     suiteName: String
     shouldFail: Int
     sets: Settings
-    config: Config
+    config: Entity
     loggy: Logger 
-    init: func(fName: String, fpath: String, =sets, defConf: Config, =loggy) {
+    init: func(fName: String, fpath: String, =sets, defConf: Entity, =loggy) {
         fileName = fName
         path = fpath
         loggy info("Created new OocFile "+fileName)
@@ -49,7 +51,7 @@ OocFile: class {
     stripEnding: func(fileName: String, ending: String) -> String {
         fileName[0..fileName length() - ending length()]
     }
-    
+
     hasOutput: func() -> Bool {
         return File new(outName) isFile()
     }
@@ -57,17 +59,17 @@ OocFile: class {
     hasSuite: func() -> Bool {
         return File new(suiteName) isFile()
     } 
-    
+
     getOutput: func() -> String {
-       if (hasOutput()) {
-           fr  := FileReader new(outName)
-           buf := StringBuffer new(Settings readSize)
-           i := 0
-           while (fr hasNext() && i < Settings readSize) { 
-               buf append(fr read())
-               i+=1
-           }
-           return buf toString()
+        if (hasOutput()) {
+            fr  := FileReader new(outName)
+            buf := StringBuffer new(Settings readSize)
+            i := 0
+            while (fr hasNext() && i < Settings readSize) { 
+                buf append(fr read())
+                 i+=1
+            }
+            return buf toString()
         } else {
             return ""
         }
@@ -77,22 +79,24 @@ OocFile: class {
         args := ArrayList<String> new()
         "compile" println()
         loggy info(fileName + " compile")
-        args add(config getCompiler()).add(fileName)//.add(this relativePath()) 
+        args add(config getOption("Compiler", String)).add(fileName)
+        //getCompiler()).//.add(this relativePath()) 
         args add("-o=%s" format(stripped))
-        args add("-%s" format(config getCompilerBackend()))
-        proc := Process new(args) 
-        return proc execute()
+        args add("-%s" format(config getOption("CompilerBackend", String)))
+        //getCompilerBackend()))
+	    proc := Process new(args) 
+	    return proc execute()
     }
-    
+
     execute: func() -> ExecuteResult {
-        
+
         args := ArrayList<String> new()
         args add(stripped)
         proc := Process new(args) 
         ret := proc execute() // return value of the process
         buf := proc getOutput() // output of the process
         return ExecuteResult new(ret, buf)
-        
+
     }   
 
     relativeBinaryPath: func() -> String {path + File separator + stripped}
@@ -104,22 +108,19 @@ Result: class {
     oocFile: OocFile
     progRetVal: Int
     compilerRetVal: Int
-    
     output: String
     specOutput: String
     specOutSet := false
-
     init: func(=oocFile) {
-        specOutSet = hasSpecOutput()
+       specOutSet = hasSpecOutput()
     }
 
     setProgResult: func(r: ExecuteResult) {
         output = r output
         progRetVal = r retVal
     }
-     
+
     getSpecOutput: func() -> String {
-        
         if (specOutSet) { 
             specOutput = oocFile getOutput()
             return specOutput
@@ -130,28 +131,25 @@ Result: class {
 
     hasSpecOutput: func() -> Bool { // ALWAYS check before
         return oocFile hasOutput()
-        
     }
-    
+
     getCompareResult: func() -> Bool {
         if (specOutSet) {
-            return compareOutput(specOutput, output)
+            return specOutput == output
+            //compareOutput(specOutput, output)
         } else {
             return false // default value
         }
     }
-
-    compareOutput: func(s1: String, s2: String) -> Bool {
-        s1 == s2
-    }
-
+    
     checkCompilerRetVal: func() -> Bool {
-        oocFile config getCompilerStat() == compilerRetVal
+        oocFile config getOption("CompilerStat", Int) == compilerRetVal
+                             //getCompilerStat() == compilerRetVal
     }
 }
 
 
-findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, sets: Settings, defConfig: Config, depth: Int, loggy: Logger) -> ArrayList<OocFile> {
+findOOCFiles: func(path: String, oocList: ArrayList<OocFile>, sets: Settings, defConfig: Entity, depth: Int, loggy: Logger) -> ArrayList<OocFile> {
     if (!depth) {
         return oocList
     } 
@@ -195,7 +193,6 @@ printResult: func (res: Result) {
         res getSpecOutput() println()
         coloredOutput("[OUTPUT] ")
         res output println()
-    
         if (!res getCompareResult()) {
             coloredOutput("[PASSED]\n\n")
         } else {
@@ -220,7 +217,7 @@ checkFiles: func(files: ArrayList<OocFile>) -> ArrayList<Result> {
 
 main: func() {
     sets := Settings new()
-    conf: Config
+    conf: Entity
     file := FileHandler new("session.log")
     file setFormatter(NiceFormatter new("{{level}}: {{msg}}"))
     Log root attachHandler(file)
@@ -231,7 +228,10 @@ main: func() {
     } else {
         conf = sets getConfigger()
     }
-    path := conf getTestDir()
+    conf setBasePath("Settings")
+    path := conf getOption("TestDir", String)
+
+    //path := conf getTestDir()
     files := findOOCFiles(path, ArrayList<OocFile> new(), sets, conf, sets depth, logger) 
     a: ArrayList<Result>
     a = checkFiles(files)

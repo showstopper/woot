@@ -56,10 +56,6 @@ OocFile: class {
         return File new(outName) isFile()
     }
 
-    hasSuite: func() -> Bool {
-        return File new(suiteName) isFile()
-    } 
-
     getOutput: func() -> String {
         if (hasOutput()) {
             fr  := FileReader new(outName)
@@ -74,16 +70,17 @@ OocFile: class {
             return ""
         }
     }
-
+    
+    hasSuite: func() -> Bool {
+        return File new(suiteName) isFile()
+    } 
+    
     compile: func() -> Int {
         args := ArrayList<String> new()
-        "compile" println()
         loggy info(fileName + " compile")
-        args add(config getOption("Compiler", String)).add(fileName)
-        //getCompiler()).//.add(this relativePath()) 
+        args add(config getOption("Settings.Compiler", String)).add(fileName)
         args add("-o=%s" format(stripped))
-        args add("-%s" format(config getOption("CompilerBackend", String)))
-        //getCompilerBackend()))
+        args add("-%s" format(config getOption("Settings.CompilerBackend", String)))
 	    proc := Process new(args) 
 	    return proc execute()
     }
@@ -136,15 +133,13 @@ Result: class {
     getCompareResult: func() -> Bool {
         if (specOutSet) {
             return specOutput == output
-            //compareOutput(specOutput, output)
         } else {
             return false // default value
         }
     }
     
     checkCompilerRetVal: func() -> Bool {
-        oocFile config getOption("CompilerStat", Int) == compilerRetVal
-                             //getCompilerStat() == compilerRetVal
+        oocFile config getOption("Settings.CompilerStat", Int) == compilerRetVal
     }
 }
 
@@ -203,7 +198,6 @@ printResult: func (res: Result) {
 
 checkFiles: func(files: ArrayList<OocFile>) -> ArrayList<Result> {
     results := ArrayList<Result> new()
-    printf("\n%d\n", files size())
     for (item in files) {
         res := Result new(item)//item)
         res compilerRetVal = item compile()
@@ -228,10 +222,7 @@ main: func() {
     } else {
         conf = sets getConfigger()
     }
-    conf setBasePath("Settings")
-    path := conf getOption("TestDir", String)
-
-    //path := conf getTestDir()
+    path := conf getOption("Settings.TestDir", String)
     files := findOOCFiles(path, ArrayList<OocFile> new(), sets, conf, sets depth, logger) 
     a: ArrayList<Result>
     a = checkFiles(files)

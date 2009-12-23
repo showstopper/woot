@@ -1,9 +1,0 @@
-# Comments begin with '#'
-
-# Here we can list the directories/files where the tests .ooc files should be found
-tests/
-
-# Woot will compile+launch them one by one, recursively
-# And display a tree with [ ok ] and [FAIL] colored in red and green
-# and totalize the failed tests, the passed tests, and the total number of tests
-# Then each failed test will have its .log file with the ooc error message

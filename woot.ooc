@@ -4,7 +4,7 @@ use deadlogger
 import io/[File,FileReader]
 import os/[Pipe,PipeReader,Process,Terminal]
 import structs/ArrayList
-import text/StringBuffer
+import lang/Buffer
 import deadlogger/[Log, Handler, Level, Formatter, Filter, Logger]
 import config
 import gifnooc/Entity
@@ -178,7 +178,8 @@ printResult: func (res: Result) {
     } else {
         coloredOutput("[COMPILE-FAIL] ")
     }
-    match res compilerRetVal {
+    ooc
+    match (res compilerRetVal) {
         case 0 => coloredOutput("[NO ERROR]\n")
         case 1 => coloredOutput("[OOC ERROR]\n")
         case 2 => coloredOutput("[BACKEND ERROR]\n")

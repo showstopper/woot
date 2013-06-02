@@ -178,7 +178,6 @@ printResult: func (res: Result) {
     } else {
         coloredOutput("[COMPILE-FAIL] ")
     }
-    ooc
     match (res compilerRetVal) {
         case 0 => coloredOutput("[NO ERROR]\n")
         case 1 => coloredOutput("[OOC ERROR]\n")

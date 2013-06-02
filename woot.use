@@ -1,5 +1,5 @@
 Name: woot
 Description: unit testing system written in ooc (candidate for the ooc compiler test suite)
-SourcePath: .
+SourcePath: source
 Main: woot.ooc
 Requires: gifnooc, deadlogger, oocini
